@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grade Calculator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #333; min-height: 100vh; }
+    header { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 24px 32px; text-align: center; }
+    header h1 { font-size: 2rem; font-weight: 700; }
+    header p { margin-top: 6px; opacity: 0.85; font-size: 0.95rem; }
+    .container { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 28px 32px; margin-bottom: 28px; }
+    .card h2 { font-size: 1.2rem; font-weight: 600; color: #4f46e5; margin-bottom: 20px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 0.82rem; font-weight: 600; color: #555; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+    input[type="text"], input[type="number"] { padding: 10px 14px; border: 1.5px solid #d1d5db; border-radius: 8px; font-size: 0.95rem; transition: border-color 0.2s; outline: none; width: 100%; }
+    input:focus { border-color: #4f46e5; }
+    .btn { padding: 11px 24px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #4f46e5; color: white; }
+    .btn-edit { background: #f0f4ff; color: #4f46e5; border: 1.5px solid #c7d2fe; }
+    .btn-delete { background: #fff0f0; color: #dc2626; border: 1.5px solid #fecaca; }
+    .btn-sm { padding: 6px 14px; font-size: 0.82rem; }
+    .submit-row { margin-top: 20px; }
+    .table-card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; padding-bottom: 8px; }
+    .table-card h2 { font-size: 1.2rem; font-weight: 600; color: #4f46e5; padding: 20px 28px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th { background: #f5f3ff; color: #4f46e5; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px; text-align: left; }
+    td { padding: 14px 16px; border-bottom: 1px solid #f1f1f1; font-size: 0.93rem; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 0.9rem; }
+    .badge-green { background: #dcfce7; color: #15803d; }
+    .badge-yellow { background: #fef9c3; color: #a16207; }
+    .badge-red { background: #fee2e2; color: #dc2626; }
+    .badge-gray { background: #f3f4f6; color: #6b7280; font-size: 0.78rem; }
+    .actions { display: flex; gap: 8px; }
+    .empty { text-align: center; padding: 40px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>&#128202; Final Exam Grade Calculator</h1>
+  <p>Find out what score you need on your final to reach your desired grade</p>
+</header>
+<div class="container">
+  <div class="card">
+    <h2>&#10133; Add a Course</h2>
+    <form method="POST">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Course Name</label>
+          {{ form.course_name }}
+        </div>
+        <div class="form-group">
+          <label>Current Grade (%)</label>
+          {{ form.current_grade }}
+        </div>
+        <div class="form-group">
+          <label>Desired Grade (%)</label>
+          {{ form.desired_grade }}
+        </div>
+        <div class="form-group full">
+          <label>Final Exam Weight (%)</label>
+          {{ form.final_weight }}
+        </div>
+      </div>
+      <div class="submit-row">
+        <button type="submit" class="btn btn-primary">Calculate &amp; Save</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-card">
+    <h2>&#128203; Your Courses</h2>
+    {% if entries %}
+    <table>
+      <thead>
+        <tr>
+          <th>Course</th>
+          <th>Current</th>
+          <th>Desired</th>
+          <th>Final Weight</th>
+          <th>Score Needed on Final</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+        {% with req=entry.required_score %}
+        <tr>
+          <td><strong>{{ entry.course_name }}</strong></td>
+          <td>{{ entry.current_grade }}%</td>
+          <td>{{ entry.desired_grade }}%</td>
+          <td>{{ entry.final_weight }}%</td>
+          <td>
+            {% if req == None %}
+              <span class="badge badge-gray">N/A</span>
+            {% elif req > 100 %}
+              <span class="badge badge-red">{{ req }}% (Not possible)</span>
+            {% elif req >= 80 %}
+              <span class="badge badge-yellow">{{ req }}%</span>
+            {% else %}
+              <span class="badge badge-green">{{ req }}%</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="actions">
+              <a href="{% url 'edit_score' entry.id %}" class="btn btn-edit btn-sm">Edit</a>
+              <a href="{% url 'delete_score' entry.id %}" class="btn btn-delete btn-sm" onclick="return confirm('Delete {{ entry.course_name }}?')">Delete</a>
+            </div>
+          </td>
+        </tr>
+        {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No courses yet. Add one above to get started!</div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>
